@@ -1,0 +1,86 @@
+;
+; KernelMonitor.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Sample ; TODO: edit Class
+ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=KernelMonitor.cat
+DriverVer= ; TODO: set DriverVer in stampinf property pages
+
+[DestinationDirs]
+DefaultDestDir = 12
+KernelMonitor_Device_CoInstaller_CopyFiles = 11
+
+; ================= Class section =====================
+
+[ClassInstall32]
+Addreg=SampleClassReg
+
+[SampleClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+KernelMonitor.sys  = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%KernelMonitor.DeviceDesc%=KernelMonitor_Device, Root\KernelMonitor ; TODO: edit hw-id
+
+[KernelMonitor_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+KernelMonitor.sys
+
+;-------------- Service installation
+[KernelMonitor_Device.NT.Services]
+AddService = KernelMonitor,%SPSVCINST_ASSOCSERVICE%, KernelMonitor_Service_Inst
+
+; -------------- KernelMonitor driver install sections
+[KernelMonitor_Service_Inst]
+DisplayName    = %KernelMonitor.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\KernelMonitor.sys
+
+;
+;--- KernelMonitor_Device Coinstaller installation ------
+;
+
+[KernelMonitor_Device.NT.CoInstallers]
+AddReg=KernelMonitor_Device_CoInstaller_AddReg
+CopyFiles=KernelMonitor_Device_CoInstaller_CopyFiles
+
+[KernelMonitor_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[KernelMonitor_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[KernelMonitor_Device.NT.Wdf]
+KmdfService =  KernelMonitor, KernelMonitor_wdfsect
+[KernelMonitor_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+ClassName="Samples" ; TODO: edit ClassName
+DiskName = "KernelMonitor Installation Disk"
+KernelMonitor.DeviceDesc = "KernelMonitor Device"
+KernelMonitor.SVCDESC = "KernelMonitor Service"
