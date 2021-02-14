@@ -22,6 +22,92 @@ namespace vmx {
 		unsigned char vmcs_data[VMCS_REGION_SIZE - (2 * sizeof(unsigned __int32))];
 	};
 
+    namespace ept {
+
+        union Eptp {
+            unsigned __int64 control;
+            struct {
+                unsigned __int64 memory_type : 3;
+                unsigned __int64 page_walk_length : 3;
+                unsigned __int64 enable_dirty_access_bits : 1;
+                unsigned __int64 reserved1 : 5;
+                unsigned __int64 pml4_physical : 36;
+                unsigned __int64 reserved2 : 16;
+            }fields;
+        };
+
+        union Pml4e {
+            unsigned __int64 control;
+            struct {
+                unsigned __int64 read : 1;
+                unsigned __int64 write : 1;
+                unsigned __int64 exec : 1;
+                unsigned __int64 reserved1 : 5;
+                unsigned __int64 accessed : 1;
+                unsigned __int64 ignored1 : 1;
+                unsigned __int64 exec_for_usermode : 1;
+                unsigned __int64 ignored2 : 1;
+                unsigned __int64 pdpt_physical : 36;
+                unsigned __int64 reserved2 : 4;
+                unsigned __int64 ignored3 : 12;
+            }fields;
+        };
+
+        union Pdpte {
+            unsigned __int64 control;
+            struct {
+                unsigned __int64 read : 1;
+                unsigned __int64 write : 1;
+                unsigned __int64 execute : 1;
+                unsigned __int64 reserved1 : 5;
+                unsigned __int64 accessed : 1;
+                unsigned __int64 ignored1 : 1;
+                unsigned __int64 exec_for_usermode : 1;
+                unsigned __int64 ignored2 : 1;
+                unsigned __int64 pdt_physical : 36;
+                unsigned __int64 reserved2 : 4;
+                unsigned __int64 ignored3 : 12;
+            }fields;
+        };
+
+        union Pdte {
+            unsigned __int64 control;
+            struct {
+                unsigned __int64 read : 1;
+                unsigned __int64 write : 1;
+                unsigned __int64 execute : 1;
+                unsigned __int64 reserved1 : 5;
+                unsigned __int64 accessed : 1;
+                unsigned __int64 ignored1 : 1;
+                unsigned __int64 exec_for_usermode : 1;
+                unsigned __int64 ignored2 : 1;
+                unsigned __int64 pt_physical : 36;
+                unsigned __int64 reserved2 : 4;
+                unsigned __int64 ignored3 : 12;
+            }fields;
+        };
+
+        union Pte {
+            unsigned __int64 control;
+            struct {
+                unsigned __int64 read : 1;
+                unsigned __int64 write : 1;
+                unsigned __int64 execute : 1;
+                unsigned __int64 mem_type : 3;
+                unsigned __int64 ignore_pat : 1;
+                unsigned __int64 ignored1 : 1;
+                unsigned __int64 accessed_flag : 1;
+                unsigned __int64 dirty_flag : 1;
+                unsigned __int64 exec_for_usermode : 1;
+                unsigned __int64 ignored2 : 1;
+                unsigned __int64 page_physical : 36;
+                unsigned __int64 reserved : 4;
+                unsigned __int64 ignored3 : 11;
+                unsigned __int64 suppress_ve : 1;
+            }fields;
+        };
+    }
+
 	struct VCpu {
 		Vmcs* vmcs;
 		unsigned __int64 vmcs_physical;
@@ -31,6 +117,11 @@ namespace vmx {
 
 		void* msr_bitmap;
 		unsigned __int64 msr_bitmap_physical;
+
+        ept::Eptp eptp;
+        ept::Pml4e* pml4t;
+        ept::Pdpte* pdpt;
+        ept::Pdte* pdt;
 
 		void* stack;
 	};
