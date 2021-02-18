@@ -5,6 +5,7 @@
 #include "msr.h"
 #include "context.h"
 #include "asm_stubs.h"
+#include "mtrr.h"
 
 // this intrinsic is for some reason left out of intrin.h
 extern "C" void _sgdt(void*);

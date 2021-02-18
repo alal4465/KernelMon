@@ -128,7 +128,7 @@ bool vmx::setup_vmcs_fields(vmx::VCpu* vcpu, PVOID guest_rsp) {
     vmx::VmxSecondaryProcessorBasedControl secondary_processor_based_control{ 0 };
     secondary_processor_based_control.control = 0;
 
-    secondary_processor_based_control.fields.enable_ept = false;
+    secondary_processor_based_control.fields.enable_ept = true;
     secondary_processor_based_control.fields.enable_vpid = false;
     secondary_processor_based_control.fields.enable_rdtscp = true;
     secondary_processor_based_control.fields.enable_invpcid = true;
@@ -202,6 +202,14 @@ bool vmx::setup_vmcs_fields(vmx::VCpu* vcpu, PVOID guest_rsp) {
 
     status |= __vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_MSR_BITMAP_ADDRESS), vcpu->msr_bitmap_physical);
 
+    ept::Eptp eptp;
+    eptp.control = 0;
+    eptp.fields.memory_type = static_cast<unsigned __int64>(arch::MtrrType::WB);
+    eptp.fields.page_walk_length = 3;
+    eptp.fields.pml4_physical = MmGetPhysicalAddress(vcpu->pml4t).QuadPart / PAGE_SIZE;
+    
+    status |= __vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_EPT_POINTER), eptp.control);
+    
     return !status;
 }
 

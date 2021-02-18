@@ -40,10 +40,8 @@ vmx::VmmContext* vmx::alloc_vmm_context() {
 		vmm_context->vcpu_table[i].vmcs = alloc_vmcs();
 		vmm_context->vcpu_table[i].msr_bitmap = msr_bitmap;
 		vmm_context->vcpu_table[i].stack = MmAllocateNonCachedMemory(VMM_STACK_SIZE);
-		ept::setup_ept(&vmm_context->vcpu_table[i]);
 
-
-		if (vmm_context->vcpu_table[i].vmcs == nullptr || vmm_context->vcpu_table[i].vmxon == nullptr || vmm_context->vcpu_table[i].stack == nullptr) {
+		if (!ept::setup_ept(&vmm_context->vcpu_table[i]) || vmm_context->vcpu_table[i].vmcs == nullptr || vmm_context->vcpu_table[i].vmxon == nullptr || vmm_context->vcpu_table[i].stack == nullptr) {
 			cleanup_vmm_context(vmm_context);
 			return nullptr;
 		}

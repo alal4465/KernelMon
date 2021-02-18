@@ -1,11 +1,12 @@
 #include "vmx.h"
 vmx::VmmContext* g_vmm_context{ nullptr };
-
-static bool enable_vmx_operation();
-static void adjust_control_registers();
-static void terminate_cpu(ULONG_PTR);
-
 extern "C" void processor_initialize_vmx(vmx::VCpu * vcpu, PVOID guest_rsp);
+
+namespace vmx{
+	static bool enable_vmx_operation();
+	static void adjust_control_registers();
+	static void terminate_cpu(ULONG_PTR);
+}
 
 bool vmx::initialize_vmx() {
 	g_vmm_context = alloc_vmm_context();
@@ -34,11 +35,11 @@ extern "C" void processor_initialize_vmx(vmx::VCpu * vcpu_table, PVOID guest_rsp
 
 	KdPrint(("[+] Initializing VMX on processor : %u\n", processor_number));
 
-	adjust_control_registers();
+	vmx::adjust_control_registers();
 
 	KdPrint(("[+] Adjusted control registers on processor : %u\n", processor_number));
 
-	if (!enable_vmx_operation()) {
+	if (!vmx::enable_vmx_operation()) {
 		KdPrint(("[-] Failed to enable vm operation on processor: %u\n", processor_number));
 		return;
 	}
@@ -67,7 +68,7 @@ extern "C" void processor_initialize_vmx(vmx::VCpu * vcpu_table, PVOID guest_rsp
 
 }
 
-static bool enable_vmx_operation() {
+static bool vmx::enable_vmx_operation() {
 	arch::Cr4 cr4;
 
 	cr4.control = __readcr4();
@@ -89,7 +90,7 @@ static bool enable_vmx_operation() {
 	return true;
 }
 
-static void adjust_control_registers() {
+static void vmx::adjust_control_registers() {
 	arch::Cr0 cr0;
 	cr0.control = __readcr0();
 
@@ -107,6 +108,6 @@ static void adjust_control_registers() {
 	__writecr4(cr4.control);
 }
 
-static void terminate_cpu(ULONG_PTR) {
+static void vmx::terminate_cpu(ULONG_PTR) {
 	__vmx_off();
 }

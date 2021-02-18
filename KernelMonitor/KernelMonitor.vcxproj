@@ -166,6 +166,7 @@
     <ClInclude Include="ept.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="msr.h" />
+    <ClInclude Include="mtrr.h" />
     <ClInclude Include="vmcs_fields.h" />
     <ClInclude Include="vmexit.h" />
     <ClInclude Include="vmx.h" />
