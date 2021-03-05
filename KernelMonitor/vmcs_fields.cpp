@@ -1,4 +1,6 @@
 #include "vmcs_fields.h"
+#include "asm_stubs.h"
+
 #pragma warning(disable: 4805 4333)
 
 static constexpr unsigned __int32 SEGMENT_DESCRIPTOR_TYPE_TSS_AVAILABLE = 11;

@@ -48,6 +48,12 @@
     <ClCompile Include="ept.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="EptHook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HookInfoManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asm_stubs.h">
@@ -81,6 +87,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mtrr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EptHook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ldisasm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HookInfoManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

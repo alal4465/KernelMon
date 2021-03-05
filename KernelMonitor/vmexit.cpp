@@ -4,8 +4,12 @@ namespace vmx {
 	namespace vmexit {
 		static void increment_rip();
 
-		static void cpuid_handler(vmx::VmexitGuestContext* context);
-		static void cr_access_handler(vmx::VmexitGuestContext* context, size_t exit_qualification);
+		static void cpuid_handler(vmx::VmexitGuestContext* context, bool& increment_rip);
+		static void cr_access_handler(vmx::VmexitGuestContext* context, size_t exit_qualification, bool& increment_rip);
+		static void ept_violation_handler(bool& increment_rip);
+		static void mtf_handler(bool& increment_rip);
+		static void read_msr_handler(bool& increment_rip, vmx::VmexitGuestContext* context);
+		static void write_msr_handler(bool& increment_rip, vmx::VmexitGuestContext* context);
 	}
 }
 
@@ -17,13 +21,39 @@ extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
 	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_EXIT_QUALIFICATION), &exit_qualification);
 
 	exit_reason &= 0xffff;
+	size_t faulting_addr{ 0 }; // TODO: remove
+	bool increment_rip{true};
 	switch (static_cast<vmx::VmExitReason>(exit_reason)) {
 	case vmx::VmExitReason::EXIT_REASON_CPUID:
-		vmx::vmexit::cpuid_handler(context);
+		vmx::vmexit::cpuid_handler(context, increment_rip);
 		break;
 
 	case vmx::VmExitReason::EXIT_REASON_CR_ACCESS:
-		vmx::vmexit::cr_access_handler(context, exit_qualification);
+		vmx::vmexit::cr_access_handler(context, exit_qualification, increment_rip);
+		break;
+
+	case vmx::VmExitReason::EXIT_REASON_EPT_VIOLATION:
+		KdPrint(("[+] Ept violation\n"));
+		__debugbreak();
+		vmx::vmexit::ept_violation_handler(increment_rip);
+		break;
+	case vmx::VmExitReason::EXIT_REASON_MONITOR_TRAP_FLAG:
+		KdPrint(("[+] MTF\n"));
+		__debugbreak();
+		vmx::vmexit::mtf_handler(increment_rip);
+		break;
+	case vmx::VmExitReason::EXIT_REASON_EPT_MISCONFIG:
+		__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_PHYSICAL_ADDRESS), &faulting_addr);
+		KdPrint(("[-] EPT misconfig at: 0x%llx\n", faulting_addr));
+		__debugbreak();
+		break;
+	case vmx::VmExitReason::EXIT_REASON_MSR_READ:
+		vmx::vmexit::read_msr_handler(increment_rip, context);
+		//__debugbreak();
+		break;
+	case vmx::VmExitReason::EXIT_REASON_MSR_WRITE:
+		vmx::vmexit::write_msr_handler(increment_rip, context);
+		//__debugbreak();
 		break;
 	default:
 		KdPrint(("[-] VMEXIT unknown reason: %u\n", exit_reason));
@@ -31,10 +61,12 @@ extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
 		break;
 	}
 
-	vmx::vmexit::increment_rip();
+	if (increment_rip) {
+		vmx::vmexit::increment_rip();
+	}
 }
 
-static void vmx::vmexit::cpuid_handler(vmx::VmexitGuestContext* context) {
+static void vmx::vmexit::cpuid_handler(vmx::VmexitGuestContext* context, bool& increment_rip) {
 	auto cpuid_eax = static_cast<unsigned __int32>(context->rax);
 	auto cpuid_ecx = static_cast<unsigned __int32>(context->rcx);
 
@@ -50,9 +82,11 @@ static void vmx::vmexit::cpuid_handler(vmx::VmexitGuestContext* context) {
 	context->rbx = cpuid_info.ebx.control;
 	context->rcx = cpuid_info.ecx.control;
 	context->rdx = cpuid_info.edx.control;
+	
+	increment_rip = true;
 }
 
-static void vmx::vmexit::cr_access_handler(vmx::VmexitGuestContext* context, size_t exit_qualification) {
+static void vmx::vmexit::cr_access_handler(vmx::VmexitGuestContext* context, size_t exit_qualification, bool& increment_rip) {
 	arch::CrExitQualifiction cr_data;
 	cr_data.control = exit_qualification;
 
@@ -129,6 +163,35 @@ static void vmx::vmexit::cr_access_handler(vmx::VmexitGuestContext* context, siz
 		&& cr_data.fields.cr_number == 4) {
 		__vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_RSP), rsp);
 	}
+
+	increment_rip = true;
+}
+
+static void vmx::vmexit::ept_violation_handler(bool& increment_rip) {
+	g_test_hook->handle_ept_violation();
+	increment_rip = false;
+}
+static void vmx::vmexit::mtf_handler(bool& increment_rip) {
+	g_test_hook->handle_mtf();
+	increment_rip = false;
+}
+static void vmx::vmexit::read_msr_handler(bool& increment_rip, vmx::VmexitGuestContext* context) {
+	ULARGE_INTEGER msr{0};
+	msr.QuadPart = __readmsr(static_cast<ULONG>(context->rcx));
+	KdPrint(("reading msr: %u", static_cast<ULONG>(context->rcx)));
+	context->rax = msr.LowPart;
+	context->rdx = msr.HighPart;
+
+	increment_rip = true;
+}
+
+static void vmx::vmexit::write_msr_handler(bool& increment_rip, vmx::VmexitGuestContext* context) {
+	ULARGE_INTEGER msr = { 0 };
+	msr.LowPart  = static_cast<ULONG>(context->rax);
+	msr.HighPart = static_cast<ULONG>(context->rdx);
+	KdPrint(("writing msr: %u", static_cast<ULONG>(context->rcx)));
+	__writemsr(static_cast<ULONG>(context->rcx), msr.QuadPart);
+	increment_rip = true;
 }
 
 static void vmx::vmexit::increment_rip() {

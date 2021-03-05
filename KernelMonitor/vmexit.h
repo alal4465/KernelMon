@@ -3,6 +3,9 @@
 #include <intrin.h>
 #include "cpuid.h"
 #include "vmcs_fields.h"
+#include "vmx.h"
+#include "EptHook.h"
+#include "HookInfoManager.h"
 
 namespace arch {
     union CrExitQualifiction

@@ -4,6 +4,7 @@
 #include "cr.h"
 #include "msr.h"
 #include "memory.h"
+#pragma warning(disable : 4201)
 
 namespace vmx {
 	constexpr unsigned __int64 VMXON_REGION_SIZE = 0x1000;
@@ -106,6 +107,28 @@ namespace vmx {
                 unsigned __int64 reserved3 : 2;
                 unsigned __int64 suppress_ve : 1;
             }fields;
+        };
+
+        union Pte {
+            unsigned __int64 control;
+            struct {
+                unsigned __int64 read : 1;
+                unsigned __int64 write : 1;
+                unsigned __int64 execute : 1;
+                unsigned __int64 type : 3;
+                unsigned __int64 ignore_pat : 1;
+                unsigned __int64 reserved1 : 1;
+                unsigned __int64 accessed : 1;
+                unsigned __int64 dirty : 1;
+                unsigned __int64 user_mode_execute : 1;
+                unsigned __int64 reserved2 : 1;
+                unsigned __int64 pfn : 40;
+                unsigned __int64 reserved3 : 8;
+                unsigned __int64 shadow_Stack : 1;
+                unsigned __int64 write_sub_page : 1;
+                unsigned __int64 reserved4 : 1;
+                unsigned __int64 suppress_ve : 1;
+            };
         };
     }
 
