@@ -9,7 +9,7 @@ vmx::VmmContext* vmx::alloc_vmm_context() {
 	PHYSICAL_ADDRESS physical_max;
 	physical_max.QuadPart = ~0ULL;
 
-	auto vmm_context = new(PagedPool) VmmContext{ 0 };
+	auto vmm_context = new(NonPagedPool) VmmContext{ 0 };
 
 	RtlSecureZeroMemory(vmm_context, sizeof(VmmContext));
 
