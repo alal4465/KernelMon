@@ -46,7 +46,7 @@ bool vmx::initialize_vmx() {
 	__debugbreak();
 	g_hook_info_manager = new(NonPagedPool) Hooking::HookInfoManager();
 	g_test_hook = new(NonPagedPool) Hooking::EptHook(ZwCreateFile, zw_create_file_callback);
-
+	//hooking::init();
 	KeIpiGenericCall(reinterpret_cast<PKIPI_BROADCAST_WORKER>(vmm_setup_stub), reinterpret_cast<ULONG_PTR>(g_vmm_context->vcpu_table));
 
 	return true;

@@ -51,7 +51,10 @@
     <ClCompile Include="EptHook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HookInfoManager.cpp">
+    <ClCompile Include="HookingEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HookingInfoManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -95,7 +98,10 @@
     <ClInclude Include="ldisasm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HookInfoManager.h">
+    <ClInclude Include="HookingEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HookingInfoManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -164,7 +164,8 @@
     <ClCompile Include="cpuid.cpp" />
     <ClCompile Include="ept.cpp" />
     <ClCompile Include="EptHook.cpp" />
-    <ClCompile Include="HookInfoManager.cpp" />
+    <ClCompile Include="HookingEngine.cpp" />
+    <ClCompile Include="HookingInfoManager.cpp" />
     <ClCompile Include="KernelMonitor.cpp" />
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="vmcs_fields.cpp" />
@@ -178,7 +179,8 @@
     <ClInclude Include="cr.h" />
     <ClInclude Include="ept.h" />
     <ClInclude Include="EptHook.h" />
-    <ClInclude Include="HookInfoManager.h" />
+    <ClInclude Include="HookingEngine.h" />
+    <ClInclude Include="HookingInfoManager.h" />
     <ClInclude Include="ldisasm.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="msr.h" />
