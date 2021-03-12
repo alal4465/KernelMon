@@ -54,7 +54,10 @@
     <ClCompile Include="HookingEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HookingInfoManager.cpp">
+    <ClCompile Include="HookInfoManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hook_callbacks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -101,7 +104,25 @@
     <ClInclude Include="HookingEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HookingInfoManager.h">
+    <ClInclude Include="KernelMonitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HookInfoManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LockGuard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpinLock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pair.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CyclicBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hook_callbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

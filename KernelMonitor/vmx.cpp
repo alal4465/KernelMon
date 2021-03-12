@@ -1,37 +1,5 @@
 #include "vmx.h"
-vmx::VmmContext* g_vmm_context{ nullptr };
 extern "C" void processor_initialize_vmx(vmx::VCpu * vcpu, PVOID guest_rsp);
-NTSTATUS zw_create_file_callback(
-	PHANDLE            FileHandle,
-	ACCESS_MASK        DesiredAccess,
-	POBJECT_ATTRIBUTES ObjectAttributes,
-	PIO_STATUS_BLOCK   IoStatusBlock,
-	PLARGE_INTEGER     AllocationSize,
-	ULONG              FileAttributes,
-	ULONG              ShareAccess,
-	ULONG              CreateDisposition,
-	ULONG              CreateOptions,
-	PVOID              EaBuffer,
-	ULONG              EaLength
-) {
-	KdPrint(("ZwCreateFile called with: %wZ\n", ObjectAttributes->ObjectName));
-	//__debugbreak();
-
-	auto jump_stub = g_hook_info_manager->lookup_jump_stub(ZwCreateFile);
-	return jump_stub(
-		FileHandle,
-		DesiredAccess,
-		ObjectAttributes,
-		IoStatusBlock,
-		AllocationSize,
-		FileAttributes,
-		ShareAccess,
-		CreateDisposition,
-		CreateOptions,
-		EaBuffer,
-		EaLength
-	);
-}
 
 namespace vmx{
 	static bool enable_vmx_operation();
@@ -40,28 +8,30 @@ namespace vmx{
 }
 
 bool vmx::initialize_vmx() {
-	g_vmm_context = alloc_vmm_context();
-	if (!g_vmm_context)
+	globals.vmm_context = alloc_vmm_context();
+	if (!globals.vmm_context)
 		return false;
-	__debugbreak();
-	g_hook_info_manager = new(NonPagedPool) Hooking::HookInfoManager();
-	g_test_hook = new(NonPagedPool) Hooking::EptHook(ZwCreateFile, zw_create_file_callback);
-	//hooking::init();
-	KeIpiGenericCall(reinterpret_cast<PKIPI_BROADCAST_WORKER>(vmm_setup_stub), reinterpret_cast<ULONG_PTR>(g_vmm_context->vcpu_table));
+
+	kstd::Pair<void*, void*> hooked_functions[] = {
+		{ZwCreateFile, Hooking::zw_create_file_callback},
+	};
+
+	globals.hooking_engine = new(NonPagedPool) Hooking::HookingEngine(hooked_functions);
+	
+	KeIpiGenericCall(reinterpret_cast<PKIPI_BROADCAST_WORKER>(vmm_setup_stub), reinterpret_cast<ULONG_PTR>(globals.vmm_context->vcpu_table));
 
 	return true;
 }
 
 void vmx::terminate_vmx() {
-	if (!g_vmm_context)
+	if (!globals.vmm_context)
 		return;
 
 	KeIpiGenericCall(reinterpret_cast<PKIPI_BROADCAST_WORKER>(terminate_cpu), 0);
 
-	cleanup_vmm_context(g_vmm_context);
-	g_vmm_context = nullptr;
+	cleanup_vmm_context(globals.vmm_context);
+	globals.vmm_context = nullptr;
 }
-
 
 extern "C" void processor_initialize_vmx(vmx::VCpu * vcpu_table, PVOID guest_rsp) {
 	auto processor_number = KeGetCurrentProcessorNumber();

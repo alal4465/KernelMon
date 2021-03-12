@@ -30,5 +30,3 @@ namespace Hooking {
 		vmx::ept::Pte** ptes_;
 	};
 }
-
-extern Hooking::EptHook* g_test_hook;

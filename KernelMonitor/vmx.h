@@ -9,8 +9,8 @@
 #include "asm_stubs.h"
 #include "EptHook.h"
 #include "HookInfoManager.h"
-
-extern vmx::VmmContext* g_vmm_context;
+#include "KernelMonitor.h"
+#include "hook_callbacks.h"
 
 namespace vmx {
 	bool initialize_vmx();

@@ -107,7 +107,13 @@ __readrsp ENDP
 
 __invept PROC
 	invept rcx, oword ptr [rdx]
+    jz invept_break
+    jc invept_break
 	ret
+
+invept_break:
+    int 3
+    ret
 __invept ENDP
 
 ;vmexit_stub PROC

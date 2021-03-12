@@ -33,7 +33,9 @@ extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
 		break;
 
 	case vmx::VmExitReason::EXIT_REASON_EPT_VIOLATION:
-		KdPrint(("[+] Ept violation. Reason: %llu\n", exit_qualification));
+		KdPrint(("[+] Ept violation. Reason: 0x%llx\n", exit_qualification));
+		__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_PHYSICAL_ADDRESS), &faulting_addr);
+		KdPrint(("[+] at: 0x%llx\n", faulting_addr));
 		vmx::vmexit::ept_violation_handler(increment_rip);
 		break;
 
@@ -169,12 +171,12 @@ static void vmx::vmexit::cr_access_handler(vmx::VmexitGuestContext* context, siz
 }
 
 static void vmx::vmexit::ept_violation_handler(bool& increment_rip) {
-	g_test_hook->handle_ept_violation();
+	globals.hooking_engine->handle_ept_violation();
 	increment_rip = false;
 }
 
 static void vmx::vmexit::mtf_handler(bool& increment_rip) {
-	g_test_hook->handle_mtf();
+	globals.hooking_engine->handle_mtf();
 	increment_rip = false;
 }
 

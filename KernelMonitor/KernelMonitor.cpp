@@ -2,6 +2,8 @@
 #include "memory.h"
 #include "cpuid.h"
 #include "vmx.h"
+#include "KernelMonitor.h"
+KernelMonGlobals globals;
 
 void DriverUnload(_In_ PDRIVER_OBJECT DriverObject);
 NTSTATUS DriverCreateClose(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
@@ -20,6 +22,24 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING Regi
 
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControl;
 
+	globals.driver_log_buffer = new(NonPagedPool) kstd::CyclicBuffer<LogEntry, kstd::SpinLock>(MAX_PERRALLEL_BUF_ENTRIES);
+	globals.driver_obj = DriverObject;
+
+	UNICODE_STRING devName = RTL_CONSTANT_STRING(DEVICE_NAME);
+	NTSTATUS status = IoCreateDevice(DriverObject, 0, &devName, FILE_DEVICE_UNKNOWN, 0, FALSE, &globals.device_obj);
+	if (!NT_SUCCESS(status)) {
+		KdPrint(("Failed to create device (0x%08X)\n", status));
+		return status;
+	}
+
+	UNICODE_STRING symLink = RTL_CONSTANT_STRING(DEVICE_SYM_NAME);
+	status = IoCreateSymbolicLink(&symLink, &devName);
+	if (!NT_SUCCESS(status)) {
+		KdPrint(("Failed to create symbolic link (0x%08X)\n", status));
+		IoDeleteDevice(globals.device_obj);
+		return status;
+	}
+	
 	if (!cpuid::is_vendor_intel()) {
 		KdPrint(("[-] Vendor is not intel!\n"));
 		return STATUS_SUCCESS;

@@ -1,7 +1,6 @@
 #include "EptHook.h"
 #include "vmx.h"
-
-Hooking::EptHook* g_test_hook = nullptr;
+#include "KernelMonitor.h"
 
 namespace Hooking {
 	/*
@@ -19,7 +18,7 @@ Hooking::EptHook::EptHook(void* hooked_function_virtual, void* hook_callback_fun
 	hooked_function_(hooked_function_virtual),
 	read_write_page_(reinterpret_cast<void*>(reinterpret_cast<unsigned __int64>(hooked_function_virtual) & 0xfffffffffffff000)),
 	execute_page_(new (NonPagedPool) unsigned char[PAGE_SIZE]),
-	ptes_(new(NonPagedPool) vmx::ept::Pte*[g_vmm_context->processor_count])
+	ptes_(new(NonPagedPool) vmx::ept::Pte*[globals.vmm_context->processor_count])
 {
 	RtlCopyMemory(execute_page_, read_write_page_, PAGE_SIZE);
 	auto exec_page_function = static_cast<unsigned char*>(execute_page_) + (reinterpret_cast<unsigned __int64>(hooked_function_virtual) % PAGE_SIZE);
@@ -35,13 +34,13 @@ Hooking::EptHook::EptHook(void* hooked_function_virtual, void* hook_callback_fun
 	void* post_hook_jmp_dest = static_cast<unsigned char*>(hooked_function_virtual) + overwritten_length;
 	RtlCopyMemory(jump_stub + overwritten_length + HOOK_ADDRESS_OFFSET, &post_hook_jmp_dest, sizeof(void*));
 
-	g_hook_info_manager->set_jump_stub(hooked_function_, jump_stub);
+	globals.hook_info_manager->set_jump_stub(hooked_function_, jump_stub);
 
 	RtlCopyMemory(exec_page_function, HOOK_PATCH_TEMPLATE, sizeof(HOOK_PATCH_TEMPLATE));
 	RtlCopyMemory(exec_page_function + HOOK_ADDRESS_OFFSET, &hook_callback_function_, sizeof(void*));
 
-	for (size_t i = 0; i < g_vmm_context->processor_count; i++) {
-		auto vcpu = &g_vmm_context->vcpu_table[i];
+	for (size_t i = 0; i < globals.vmm_context->processor_count; i++) {
+		auto vcpu = &globals.vmm_context->vcpu_table[i];
 		unsigned __int64 guest_physical_page = MmGetPhysicalAddress(read_write_page_).QuadPart;
 
 		vmx::ept::LargePdte* large_pdte = &vcpu->large_pdt[(guest_physical_page >> 21) / vmx::ept::EPT_TABLE_ENTRIES][(guest_physical_page >> 21) % vmx::ept::EPT_TABLE_ENTRIES];
@@ -52,12 +51,17 @@ Hooking::EptHook::EptHook(void* hooked_function_virtual, void* hook_callback_fun
 		vmx::ept::Pte* pte = reinterpret_cast<vmx::ept::Pte*>(MmGetVirtualForPhysical(physical_addr));
 		pte = &pte[(guest_physical_page >> 12) % vmx::ept::EPT_TABLE_ENTRIES];
 
+		/*
 		vmx::ept::Pte pte_template;
 		pte_template.control = 0;
 		pte_template.execute = true;
 		pte_template.pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
+		*/
 
-		pte->control = pte_template.control;
+		pte->read = false;
+		pte->write = false;
+		pte->execute = true;
+		pte->pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
 		ptes_[i] = pte;
 	}
 }
