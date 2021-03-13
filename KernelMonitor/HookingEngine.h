@@ -12,9 +12,6 @@ namespace Hooking {
 			function_hooks_(new (NonPagedPool) EptHook*[hooked_function_count_]),
 			expected_mtf_function_index_(-1)
 		{
-			__debugbreak();
-			globals.hook_info_manager = new (NonPagedPool) HookInfoManager(hooked_functions);
-
 			for (unsigned __int32 i = 0; i < hooked_function_count_; i++) {
 				function_hooks_[i] = new(NonPagedPool) EptHook(hooked_functions[i].first, hooked_functions[i].second);
 			}

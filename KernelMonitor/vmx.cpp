@@ -16,6 +16,7 @@ bool vmx::initialize_vmx() {
 		{ZwCreateFile, Hooking::zw_create_file_callback},
 	};
 
+	globals.hook_info_manager = new (NonPagedPool) Hooking::HookInfoManager(hooked_functions);
 	globals.hooking_engine = new(NonPagedPool) Hooking::HookingEngine(hooked_functions);
 	
 	KeIpiGenericCall(reinterpret_cast<PKIPI_BROADCAST_WORKER>(vmm_setup_stub), reinterpret_cast<ULONG_PTR>(globals.vmm_context->vcpu_table));

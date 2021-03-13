@@ -6,8 +6,8 @@ namespace kstd {
 	template <typename T, typename TLock>
 	class CyclicBuffer final {
 	public:
-		explicit CyclicBuffer(size_t size) :
-			buf_(new(NonPagedPool) T[size]),
+		explicit CyclicBuffer(size_t size, POOL_TYPE pool_type = PagedPool) :
+			buf_(new(pool_type) T[size]),
 			max_size_(size)
 		{}
 
@@ -18,9 +18,13 @@ namespace kstd {
 		void push(const T& item) {
 			kstd::LockGuard<TLock> lock(lock_);
 
+			/*
 			if (full_) {
-				//KdPrint(("[-] CyclicBuffer overflow with max size: llu", max_size_));
-				//tail_ = (tail_ + 1) % max_size_;
+				KdPrint(("[-] CyclicBuffer overflow with max size: llu", max_size_));
+				tail_ = (tail_ + 1) % max_size_;
+			}
+			*/
+			if (full_) {
 				return;
 			}
 
@@ -30,17 +34,17 @@ namespace kstd {
 			full_ = head_ == tail_;
 		}
 
-		void pop(T& result) {
+		bool pop(T& result) {
 			kstd::LockGuard<TLock> lock(lock_);
 
 			if (empty())
-				return;
+				return false;
 
-			const auto& val = buf_[tail_];
+			result = buf_[tail_];
 			full_ = false;
 			tail_ = (tail_ + 1) % max_size_;
 
-			result = val;
+			return true;
 		}
 
 		void reset() {
