@@ -91,9 +91,7 @@ NTSTATUS Hooking::zw_create_file_callback(
 	PUNICODE_STRING driver_name;
 	if (find_driver_by_address(_ReturnAddress(), driver_name) && is_driver_monitored(driver_name)) {
 		LogEntry log;
-		KdPrint(("[+] attempting0 %wZ %wZ\n", driver_name, ObjectAttributes->ObjectName));
-		KdPrint(("[+] attempting1 %S %S\n", driver_name->Buffer, ObjectAttributes->ObjectName->Buffer));
-		
+
 		wcscpy_s(log.driver, driver_name->Buffer);
 		log.driver[min(driver_name->Length, (sizeof(log.driver)/sizeof(log.driver[0])) - 1)] = L'\0';
 		wcscpy_s(log.details, ObjectAttributes->ObjectName->Buffer);
@@ -102,7 +100,7 @@ NTSTATUS Hooking::zw_create_file_callback(
 		log.function = MonitoredFunctions::ZwCreateFile;
 		log.result = result;
 		
-		KdPrint(("[+] Pushing %S %S\n", log.driver, log.details));
+		KdPrint(("[+] Pushing log to cyclic buffer: %S %S\n", log.driver, log.details));
 		globals.driver_log_buffer->push(log);
 	}
 	
