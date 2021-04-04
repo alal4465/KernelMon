@@ -16,4 +16,15 @@ namespace Hooking {
 		PVOID              EaBuffer,
 		ULONG              EaLength
 	);
+	NTSTATUS zw_write_file_callback(
+		HANDLE             FileHandle,
+		HANDLE             Event,
+		PIO_APC_ROUTINE    ApcRoutine,
+		PVOID              ApcContext,
+		PIO_STATUS_BLOCK   IoStatusBlock,
+		PVOID              Buffer,
+		ULONG              Length,
+		PLARGE_INTEGER     ByteOffset,
+		PULONG             Key
+	);
 }

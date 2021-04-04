@@ -20,7 +20,7 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING Regi
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControl;
 
 	memset(globals.monitored_drivers, 0, sizeof(globals.monitored_drivers));
-	globals.monitored_drivers[0] = L"ntoskrnl.exe";
+	globals.monitored_drivers[0] = L"MonitorTester.sys";
 
 	globals.driver_log_buffer = new(NonPagedPool) kstd::CyclicBuffer<LogEntry, kstd::SpinLock>(MAX_PERRALLEL_BUF_ENTRIES, NonPagedPool);
 	globals.driver_obj = DriverObject;

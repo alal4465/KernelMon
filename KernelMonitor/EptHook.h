@@ -19,14 +19,14 @@ namespace Hooking {
 
 		void handle_mtf() volatile;
 
+		void add_function_hook(void* hooked_function_virtual, void* hook_callback_function);
+
 		unsigned __int64 guest_physical_page() { return MmGetPhysicalAddress(read_write_page_).QuadPart & 0xfffffffffffff000; }
 
 		//~EptHook();
 	private:
-		void* hook_callback_function_;
 		void* execute_page_;
 		void* read_write_page_;
-		void* hooked_function_;
 		vmx::ept::Pte** ptes_;
 	};
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-constexpr const WCHAR DEVICE_SYM_NAME[] = L"\\??\\KernelMon";
-constexpr const WCHAR USERMODE_DEVICE_NAME[] = L"\\\\.\\KernelMon";
+constexpr const wchar_t DEVICE_SYM_NAME[] = L"\\??\\KernelMon";
+constexpr const wchar_t USERMODE_DEVICE_NAME[] = L"\\\\.\\KernelMon";
 
 constexpr unsigned long long MAX_MONITORED_DRIVERS = 10;
 
@@ -17,8 +17,9 @@ enum class MonitoredFunctions {
 };
 
 struct LogEntry {
-	WCHAR driver[20];
+	wchar_t driver[20];
 	MonitoredFunctions function;
-	NTSTATUS result;
-	WCHAR details[265];
+	long result;
+	wchar_t path[265];
+	wchar_t details[150];
 };

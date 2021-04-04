@@ -26,3 +26,13 @@ void Hooking::HookingEngine::handle_mtf() {
 
 	expected_mtf_function_index_ = -1;
 }
+
+bool Hooking::HookingEngine::add_function_to_already_hooked_page(void* hooked_function, void* hook_callback, unsigned int current_hooked_function_amount) {
+	for (unsigned __int32 i = 0; i < current_hooked_function_amount; i++) {
+		if ((MmGetPhysicalAddress(hooked_function).QuadPart & 0xfffffffffffff000) == function_hooks_[i]->guest_physical_page()) {
+			function_hooks_[i]->add_function_hook(hooked_function, hook_callback);
+			return true;
+		}
+	}
+	return false;
+}

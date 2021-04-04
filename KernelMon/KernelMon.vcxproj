@@ -149,7 +149,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="DriverConn.cpp" />
     <ClCompile Include="KernelMon.cpp" />
+    <ClCompile Include="ListBox.cpp" />
+    <ClCompile Include="MenuBar.cpp" />
+    <ClCompile Include="Window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="DriverConn.h" />
+    <ClInclude Include="GuiBase.h" />
+    <ClInclude Include="ListBox.h" />
+    <ClInclude Include="MenuBar.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Window.h" />
+    <ClInclude Include="WindowOptions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

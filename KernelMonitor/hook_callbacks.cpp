@@ -94,15 +94,57 @@ NTSTATUS Hooking::zw_create_file_callback(
 
 		wcscpy_s(log.driver, driver_name->Buffer);
 		log.driver[min(driver_name->Length, (sizeof(log.driver)/sizeof(log.driver[0])) - 1)] = L'\0';
-		wcscpy_s(log.details, ObjectAttributes->ObjectName->Buffer);
-		log.details[min(ObjectAttributes->ObjectName->Length, ((sizeof(log.details) / sizeof(log.details[0])) - 1))] = L'\0';
-
+		wcscpy_s(log.path, ObjectAttributes->ObjectName->Buffer);
+		log.path[min(ObjectAttributes->ObjectName->Length, ((sizeof(log.path) / sizeof(log.path[0])) - 1))] = L'\0';
+		log.details[0] = L'\0';
 		log.function = MonitoredFunctions::ZwCreateFile;
 		log.result = result;
 		
-		KdPrint(("[+] Pushing log to cyclic buffer: %S %S\n", log.driver, log.details));
+		KdPrint(("[+] ZwCreateFile Pushing log to cyclic buffer: %S %S\n", log.driver, log.path));
 		globals.driver_log_buffer->push(log);
 	}
 	
+	return result;
+}
+
+NTSTATUS Hooking::zw_write_file_callback(
+	HANDLE             FileHandle,
+	HANDLE             Event,
+	PIO_APC_ROUTINE    ApcRoutine,
+	PVOID              ApcContext,
+	PIO_STATUS_BLOCK   IoStatusBlock,
+	PVOID              Buffer,
+	ULONG              Length,
+	PLARGE_INTEGER     ByteOffset,
+	PULONG             Key
+) {
+	auto jump_stub = globals.hook_info_manager->lookup_jump_stub(ZwWriteFile);
+	auto result = jump_stub(
+		FileHandle,
+		Event,
+		ApcRoutine,
+		ApcContext,
+		IoStatusBlock,
+		Buffer,
+		Length,
+		ByteOffset,
+		Key
+	);
+
+	PUNICODE_STRING driver_name;
+	if (find_driver_by_address(_ReturnAddress(), driver_name) && is_driver_monitored(driver_name)) {
+		LogEntry log;
+
+		wcscpy_s(log.driver, driver_name->Buffer);
+		log.driver[min(driver_name->Length, (sizeof(log.driver) / sizeof(log.driver[0])) - 1)] = L'\0';
+		log.path[0] = L'\0';
+		memcpy(log.details, Buffer, min(Length, sizeof(log.details)));
+		log.function = MonitoredFunctions::ZwWriteFile;
+		log.result = result;
+
+		KdPrint(("[+] ZwWriteFile Pushing log to cyclic buffer: %S\n", log.driver));
+		globals.driver_log_buffer->push(log);
+	}
+
 	return result;
 }

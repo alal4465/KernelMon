@@ -1,53 +1,49 @@
-#include "../KernelMonitor/common.h"
 #include <iostream>
-#include <Windows.h>
+#include "Application.h"
+#include <iostream>
 #include <unordered_map>
 #include <string_view>
+#include <Windows.h>
+#include "../KernelMonitor/common.h"
+#include <string>
+#include "ListBox.h"
+#include "DriverConn.h"
 
-const std::unordered_map<MonitoredFunctions, std::string_view> monitored_functions = {
-	{MonitoredFunctions::ZwCreateFile, "ZwCreateFile"},
-	{MonitoredFunctions::ZwWriteFile, "ZwWriteFile"},
-	{MonitoredFunctions::ZwCreateKey, "ZwCreateKey"}
+Gui::Application app;
+const std::unordered_map<MonitoredFunctions, std::wstring> monitored_functions = {
+	{MonitoredFunctions::ZwCreateFile, L"ZwCreateFile"},
+	{MonitoredFunctions::ZwWriteFile, L"ZwWriteFile"},
+	{MonitoredFunctions::ZwCreateKey, L"ZwCreateKey"}
 };
 
-int main() {
-	// DEVICE_SYM_NAME or USERMODE_DEVICE_NAME?
-	auto device_handle = CreateFile(
-		DEVICE_SYM_NAME,
-		GENERIC_READ | GENERIC_WRITE,
-		0,
-		nullptr,
-		OPEN_EXISTING,
-		0,
-		nullptr
-	);
 
-	if (device_handle == INVALID_HANDLE_VALUE) {
-		std::cout << "[-] CreateFile failed with last error: " << GetLastError() << '\n';
-		return -1;
-	}
-	DWORD returned;
+void request_driver_log(HWND, UINT, UINT_PTR, DWORD) {
+	std::cout << "timeout\n";
+
+	static DriverConn driver_conn(DEVICE_SYM_NAME);
 	LogEntry log;
-	while (true) {
-		if (!DeviceIoControl(device_handle, static_cast<DWORD>(KernelMonIoctls::GetData), nullptr, 0, &log, sizeof(log), &returned, nullptr) || log.function == MonitoredFunctions::None) {
-			//std::cout << "[-] DeviceIoControl failed with last error: " << GetLastError() << '\n';
-			Sleep(1000);
-			continue;
-		}
 
-		std::cout << "[+] Log entry from ";
-		std::wcout << std::wstring_view(log.driver);
-		std::cout << '\n';
-		std::cout << "Function: " << monitored_functions.at(log.function) << '\n';
-		std::cout << "Details: ";
-		std::wcout << std::wstring_view(log.details);
-		std::cout << '\n';
-		std::cout << "Result: " << log.result << "\n\n";
-
-
+	if (!driver_conn.receive_data(log) || log.function == MonitoredFunctions::None) {
+		return;
 	}
 
-	CloseHandle(device_handle);
+	std::wstring str = std::wstring(L"Driver: ") + log.driver + L" | ";
+	str += std::wstring(L"Function: ") + monitored_functions.at(log.function) + L" | ";
+	str += std::wstring(L"Path: ") + log.path + L" | ";
+	str += std::wstring(L"Details: ") + log.details + L" | ";
+	str += std::wstring(L"Result: ") + std::to_wstring(log.result);
+
+	std::wcout << str;
+	app.add_log(str);
+}
+
+
+int main()
+{
+	app.set_visibility(true);
+	app.set_timer(1000, request_driver_log);
+	app.main_loop();
 
 	return 0;
 }
+

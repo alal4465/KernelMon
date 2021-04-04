@@ -14,6 +14,7 @@ bool vmx::initialize_vmx() {
 
 	kstd::Pair<void*, void*> hooked_functions[] = {
 		{ZwCreateFile, Hooking::zw_create_file_callback},
+		{ZwWriteFile, Hooking::zw_write_file_callback},
 	};
 
 	globals.hook_info_manager = new (NonPagedPool) Hooking::HookInfoManager(hooked_functions);
