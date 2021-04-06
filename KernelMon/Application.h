@@ -1,25 +1,42 @@
 #pragma once
-#include "Window.h"
-#include "MenuBar.h"
+#include "imgui/imgui.h"
+#include <vector>
+#include <string>
+#include <array>
 #include <Windows.h>
-#include "resource.h"
-#include "ListBox.h"
+#include "../KernelMonitor/common.h"
+#include "util.h"
+#include "DriverConn.h"
 
 namespace Gui {
+	constexpr inline unsigned int MAX_MONITORED_DRIVERS = 5;
 
-	class Application : public Window {
+	struct AppLog final {
+		std::string driver;
+		MonitoredFunctions function;
+		long result;
+		std::string path;
+		std::string details;
+	};
+
+	class Application final {
 	public:
 		Application();
 
-		void add_log(const std::wstring& log);
+		void render_tick();
 
+		void show_drivers_window();
+
+		void show_log_window();
+
+		void add_log(AppLog&& log);
+
+		DriverConn& driver() { return driver_conn_; }
 	private:
-		void add_widgets();
-
-		ListBox log_list_;
-
-		static const std::string WINAPI_CLASS_NAME;
-
-		static LRESULT CALLBACK handle_window_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		std::vector<AppLog> logs_;
+		std::vector<std::string> monitored_drivers_;
+		DriverConn driver_conn_;
 	};
+
+	extern Application app;
 }

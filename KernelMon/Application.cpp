@@ -1,50 +1,81 @@
 #include "Application.h"
+#include <iostream>
 
-const std::string Gui::Application::WINAPI_CLASS_NAME("KernelMon");
-
-Gui::Application::Application() :
-    Window(WINAPI_CLASS_NAME, window_params(WindowStyle::App, 0, DEFAULT_PARAMS_PAIR, { 1920, 1028 }, WINAPI_CLASS_NAME), handle_window_message),
-    log_list_(*this, { 1900, 978 })
+Gui::Application::Application() : driver_conn_(DEVICE_SYM_NAME)
 {
-    add_widgets();
+
 }
 
-
-void Gui::Application::add_log(const std::wstring& log) {
-    log_list_.add_item(log);
+void Gui::Application::render_tick() {
+    show_log_window();
+    show_drivers_window();
 }
 
-void Gui::Application::add_widgets() {
-    MenuBar menu;
-    menu.add_menu_item({ "&Filter", static_cast<unsigned long long>(Idm::MenuFilter) });
-    menu.add_menu_item({ "&Add driver", static_cast<unsigned long long>(Idm::MenuAddDriver) });
-    menu.add_menu_item({ "&Remove driver", static_cast<unsigned long long>(Idm::MenuAddDriver) });
-    menu.add_menu_item({ "&Quit", static_cast<unsigned long long>(Idm::MenuQuit) });
-    menu.pack(*this);
-}
+void Gui::Application::show_drivers_window() {
+    ImGui::Begin("Driver Settings");
 
+    static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
+    if (ImGui::BeginTable("Monitored Drivers", 1, flags, ImVec2(0, 0)))
+    {
+        ImGui::TableSetupColumn("driver names");
+        ImGui::TableHeadersRow();
 
-LRESULT CALLBACK Gui::Application::handle_window_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
-    case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
-        FillRect(hdc, &ps.rcPaint, reinterpret_cast<HBRUSH>((COLOR_WINDOW + 1)));
-        EndPaint(hwnd, &ps);
-        break;
-    }
-    case WM_COMMAND:
-        switch (static_cast<Idm>(LOWORD(wParam))) {
-        case Idm::MenuQuit:
-            PostQuitMessage(0);
-            break;
-
-        case Idm::MenuFilter:
-            break;
+        for (const auto& driver : monitored_drivers_) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(driver.c_str());
         }
-        break;
+
+        ImGui::EndTable();
     }
 
-    return DefWindowProcA(hwnd, uMsg, wParam, lParam);
+    static char buf1[64] = "";
+    ImGui::InputText("", buf1, 64);
+    if (ImGui::Button("add driver")) {
+        monitored_drivers_.push_back(buf1);
+        buf1[0] = '\0';
+    }
+
+    ImGui::End();
+}
+
+void Gui::Application::show_log_window() {
+    ImGui::Begin("Logs");
+
+    static ImGuiTableFlags flags = ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
+    if (ImGui::BeginTable("table_scrollx", 5, flags, ImVec2(0, 0)))
+    {
+        ImGui::TableSetupColumn("Driver");
+        ImGui::TableSetupColumn("Function");
+        ImGui::TableSetupColumn("Path");
+        ImGui::TableSetupColumn("Details");
+        ImGui::TableSetupColumn("Result");
+        ImGui::TableHeadersRow();
+        for (const auto& log : this->logs_) {
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(log.driver.data());
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(monitored_functions_map.at(log.function).data());
+
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text(log.path.data());
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text(log.details.data());
+
+            ImGui::TableSetColumnIndex(4);
+            auto result_text = std::to_string(log.result);
+            ImGui::Text(result_text.data());
+        }
+        ImGui::EndTable();
+
+        ImGui::End();
+    }
+}
+
+void Gui::Application::add_log(AppLog&& log) {
+    logs_.push_back(std::move(log));
 }
