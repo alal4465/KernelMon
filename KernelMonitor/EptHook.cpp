@@ -1,7 +1,6 @@
 #include "EptHook.h"
 #include "vmx.h"
-
-Hooking::EptHook* g_test_hook = nullptr;
+#include "KernelMonitor.h"
 
 namespace Hooking {
 	/*
@@ -15,13 +14,84 @@ namespace Hooking {
 }
 
 Hooking::EptHook::EptHook(void* hooked_function_virtual, void* hook_callback_function):
-	hook_callback_function_(hook_callback_function),
-	hooked_function_(hooked_function_virtual),
 	read_write_page_(reinterpret_cast<void*>(reinterpret_cast<unsigned __int64>(hooked_function_virtual) & 0xfffffffffffff000)),
 	execute_page_(new (NonPagedPool) unsigned char[PAGE_SIZE]),
-	ptes_(new(NonPagedPool) vmx::ept::Pte*[g_vmm_context->processor_count])
+	ptes_(new(NonPagedPool) vmx::ept::Pte*[globals.vmm_context->processor_count])
 {
 	RtlCopyMemory(execute_page_, read_write_page_, PAGE_SIZE);
+	add_function_hook(hooked_function_virtual, hook_callback_function);
+
+	for (size_t i = 0; i < globals.vmm_context->processor_count; i++) {
+		auto vcpu = &globals.vmm_context->vcpu_table[i];
+		unsigned __int64 guest_physical_page = MmGetPhysicalAddress(read_write_page_).QuadPart;
+
+		vmx::ept::LargePdte* large_pdte = &vcpu->large_pdt[(guest_physical_page >> 21) / vmx::ept::EPT_TABLE_ENTRIES][(guest_physical_page >> 21) % vmx::ept::EPT_TABLE_ENTRIES];
+		vmx::ept::split_large_pdte(large_pdte);
+
+		PHYSICAL_ADDRESS physical_addr{ 0 };
+		physical_addr.QuadPart = reinterpret_cast<vmx::ept::Pdte*>(large_pdte)->fields.pt_physical * PAGE_SIZE;
+		vmx::ept::Pte* pte = reinterpret_cast<vmx::ept::Pte*>(MmGetVirtualForPhysical(physical_addr));
+		pte = &pte[(guest_physical_page >> 12) % vmx::ept::EPT_TABLE_ENTRIES];
+
+		/*
+		vmx::ept::Pte pte_template;
+		pte_template.control = 0;
+		pte_template.execute = true;
+		pte_template.pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
+		*/
+
+		pte->read = false;
+		pte->write = false;
+		pte->execute = true;
+		pte->pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
+		ptes_[i] = pte;
+	}
+}
+
+// TODO: will verify that the violation is relevent
+void Hooking::EptHook::handle_ept_violation() volatile{
+	__debugbreak();
+	auto pte = ptes_[KeGetCurrentProcessorNumber()];
+
+	pte->pfn = MmGetPhysicalAddress(read_write_page_).QuadPart >> 12;
+	pte->read = true;
+	pte->write = true;
+	pte->execute = false;
+
+	unsigned __int64 rip{ 0 };
+	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_RIP), &rip);
+	KdPrint(("Guest RIP: 0x%llx\n", rip));
+
+	invept_global();
+
+	unsigned __int64 primary_processor_based_ctrl{ 0 };
+	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), &primary_processor_based_ctrl);
+	reinterpret_cast<vmx::VmxPrimaryProcessorBasedControl*>(&primary_processor_based_ctrl)->fields.monitor_trap_flag = true;
+	__vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), primary_processor_based_ctrl);	
+}
+
+void Hooking::EptHook::handle_mtf() volatile {
+	__debugbreak();
+	auto pte = ptes_[KeGetCurrentProcessorNumber()];
+
+	pte->pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
+	pte->read = false;
+	pte->write = false;
+	pte->execute = true;
+
+	unsigned __int64 rip{ 0 };
+	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_RIP), &rip);
+	KdPrint(("Guest RIP: 0x%llx\n", rip));
+
+	invept_global();
+
+	unsigned __int64 primary_processor_based_ctrl{ 0 };
+	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), &primary_processor_based_ctrl);
+	reinterpret_cast<vmx::VmxPrimaryProcessorBasedControl*>(&primary_processor_based_ctrl)->fields.monitor_trap_flag = false;
+	__vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), primary_processor_based_ctrl);
+}
+
+void Hooking::EptHook::add_function_hook(void* hooked_function_virtual, void* hook_callback_function) {
 	auto exec_page_function = static_cast<unsigned char*>(execute_page_) + (reinterpret_cast<unsigned __int64>(hooked_function_virtual) % PAGE_SIZE);
 
 	size_t overwritten_length{ 0 };
@@ -32,67 +102,11 @@ Hooking::EptHook::EptHook(void* hooked_function_virtual, void* hook_callback_fun
 	RtlCopyMemory(jump_stub, exec_page_function, overwritten_length);
 	RtlCopyMemory(jump_stub + overwritten_length, HOOK_PATCH_TEMPLATE, sizeof(HOOK_PATCH_TEMPLATE));
 
-	//void* post_hook_jmp_dest = exec_page_function + overwritten_length;
 	void* post_hook_jmp_dest = static_cast<unsigned char*>(hooked_function_virtual) + overwritten_length;
 	RtlCopyMemory(jump_stub + overwritten_length + HOOK_ADDRESS_OFFSET, &post_hook_jmp_dest, sizeof(void*));
 
-	g_hook_info_manager->set_jump_stub(hooked_function_, jump_stub);
+	globals.hook_info_manager->set_jump_stub(hooked_function_virtual, jump_stub);
 
 	RtlCopyMemory(exec_page_function, HOOK_PATCH_TEMPLATE, sizeof(HOOK_PATCH_TEMPLATE));
-	RtlCopyMemory(exec_page_function + HOOK_ADDRESS_OFFSET, &hook_callback_function_, sizeof(void*));
-
-	for (size_t i = 0; i < g_vmm_context->processor_count; i++) {
-		auto vcpu = &g_vmm_context->vcpu_table[i];
-		unsigned __int64 guest_physical_page = MmGetPhysicalAddress(read_write_page_).QuadPart;
-
-		vmx::ept::LargePdte* large_pdte = &vcpu->large_pdt[(guest_physical_page >> 21) / vmx::ept::EPT_TABLE_ENTRIES][(guest_physical_page >> 21) % vmx::ept::EPT_TABLE_ENTRIES];
-		vmx::ept::split_large_pdte(large_pdte);
-
-		PHYSICAL_ADDRESS physical_addr{ 0 };
-		physical_addr.QuadPart = reinterpret_cast<vmx::ept::Pdte*>(large_pdte)->fields.pt_physical * PAGE_SIZE;
-		//physical_addr.QuadPart = large_pdte->fields.pfn * PAGE_SIZE;
-		vmx::ept::Pte* pte = reinterpret_cast<vmx::ept::Pte*>(MmGetVirtualForPhysical(physical_addr));
-		pte = &pte[(guest_physical_page >> 12) % vmx::ept::EPT_TABLE_ENTRIES];
-
-		vmx::ept::Pte pte_template;
-		pte_template.control = 0;
-		pte_template.execute = true;
-		pte_template.pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
-
-		pte->control = pte_template.control;
-		ptes_[i] = pte;
-	}
-}
-
-// TODO: will verify that the violation is relevent
-void Hooking::EptHook::handle_ept_violation() volatile{
-	auto pte = ptes_[KeGetCurrentProcessorIndex()];
-
-	pte->pfn = MmGetPhysicalAddress(read_write_page_).QuadPart >> 12;
-	pte->read = true;
-	pte->write = true;
-	pte->execute = false;
-
-	vmx::VmxPrimaryProcessorBasedControl primary_processor_based_ctrl{0};
-	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), reinterpret_cast<size_t*>(&primary_processor_based_ctrl.control));
-	primary_processor_based_ctrl.fields.monitor_trap_flag = true;
-	__vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), primary_processor_based_ctrl.control);
-	
-	invept_global();
-}
-
-void Hooking::EptHook::handle_mtf() volatile {
-	auto pte = ptes_[KeGetCurrentProcessorIndex()];
-
-	pte->pfn = MmGetPhysicalAddress(execute_page_).QuadPart >> 12;
-	pte->read = false;
-	pte->write = false;
-	pte->execute = true;
-
-	vmx::VmxPrimaryProcessorBasedControl primary_processor_based_ctrl{ 0 };
-	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), reinterpret_cast<size_t*>(&primary_processor_based_ctrl.control));
-	primary_processor_based_ctrl.fields.monitor_trap_flag = false;
-	__vmx_vmwrite(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS), primary_processor_based_ctrl.control);
-
-	invept_global();
+	RtlCopyMemory(exec_page_function + HOOK_ADDRESS_OFFSET, &hook_callback_function, sizeof(void*));
 }

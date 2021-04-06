@@ -84,7 +84,6 @@ static bool vmx::ept::alloc_ept(VCpu* vcpu) {
 }
 
 void vmx::ept::split_large_pdte(LargePdte* pde) {
-	__debugbreak();
 	if (!pde->fields.large)
 		return;
 

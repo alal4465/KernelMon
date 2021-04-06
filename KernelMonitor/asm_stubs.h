@@ -30,9 +30,10 @@ extern "C" {
 	void __invept(unsigned __int32 type, void* descriptors);
 	inline void invept_global() {
 		unsigned __int64 descriptors[2];
+		memset(descriptors, 0, sizeof(descriptors));
 
-		__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_EPT_POINTER), descriptors);
-		descriptors[1] = 0;
+		//__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_CTRL_EPT_POINTER), descriptors);
+		//descriptors[1] = 0;
 
 		__invept(static_cast<unsigned __int32>(InveptType::GLOBAL_CONTEXT), descriptors);
 	}

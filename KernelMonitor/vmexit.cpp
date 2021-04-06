@@ -33,28 +33,31 @@ extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
 		break;
 
 	case vmx::VmExitReason::EXIT_REASON_EPT_VIOLATION:
-		KdPrint(("[+] Ept violation\n"));
-		__debugbreak();
+		KdPrint(("[+] Ept violation. Reason: 0x%llx\n", exit_qualification));
+		__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_PHYSICAL_ADDRESS), &faulting_addr);
+		KdPrint(("[+] at: 0x%llx\n", faulting_addr));
 		vmx::vmexit::ept_violation_handler(increment_rip);
 		break;
+
 	case vmx::VmExitReason::EXIT_REASON_MONITOR_TRAP_FLAG:
 		KdPrint(("[+] MTF\n"));
-		__debugbreak();
 		vmx::vmexit::mtf_handler(increment_rip);
 		break;
+
 	case vmx::VmExitReason::EXIT_REASON_EPT_MISCONFIG:
 		__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_GUEST_PHYSICAL_ADDRESS), &faulting_addr);
 		KdPrint(("[-] EPT misconfig at: 0x%llx\n", faulting_addr));
 		__debugbreak();
 		break;
+
 	case vmx::VmExitReason::EXIT_REASON_MSR_READ:
 		vmx::vmexit::read_msr_handler(increment_rip, context);
-		//__debugbreak();
 		break;
+
 	case vmx::VmExitReason::EXIT_REASON_MSR_WRITE:
 		vmx::vmexit::write_msr_handler(increment_rip, context);
-		//__debugbreak();
 		break;
+
 	default:
 		KdPrint(("[-] VMEXIT unknown reason: %u\n", exit_reason));
 		__debugbreak();
@@ -168,17 +171,19 @@ static void vmx::vmexit::cr_access_handler(vmx::VmexitGuestContext* context, siz
 }
 
 static void vmx::vmexit::ept_violation_handler(bool& increment_rip) {
-	g_test_hook->handle_ept_violation();
+	globals.hooking_engine->handle_ept_violation();
 	increment_rip = false;
 }
+
 static void vmx::vmexit::mtf_handler(bool& increment_rip) {
-	g_test_hook->handle_mtf();
+	globals.hooking_engine->handle_mtf();
 	increment_rip = false;
 }
+
 static void vmx::vmexit::read_msr_handler(bool& increment_rip, vmx::VmexitGuestContext* context) {
 	ULARGE_INTEGER msr{0};
 	msr.QuadPart = __readmsr(static_cast<ULONG>(context->rcx));
-	KdPrint(("reading msr: %u", static_cast<ULONG>(context->rcx)));
+
 	context->rax = msr.LowPart;
 	context->rdx = msr.HighPart;
 
@@ -189,7 +194,7 @@ static void vmx::vmexit::write_msr_handler(bool& increment_rip, vmx::VmexitGuest
 	ULARGE_INTEGER msr = { 0 };
 	msr.LowPart  = static_cast<ULONG>(context->rax);
 	msr.HighPart = static_cast<ULONG>(context->rdx);
-	KdPrint(("writing msr: %u", static_cast<ULONG>(context->rcx)));
+
 	__writemsr(static_cast<ULONG>(context->rcx), msr.QuadPart);
 	increment_rip = true;
 }
