@@ -20,7 +20,6 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING Regi
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControl;
 
 	memset(globals.monitored_drivers, 0, sizeof(globals.monitored_drivers));
-	globals.monitored_drivers[0] = L"MonitorTester.sys";
 
 	globals.driver_log_buffer = new(NonPagedPool) kstd::CyclicBuffer<LogEntry, kstd::SpinLock>(MAX_PERRALLEL_BUF_ENTRIES, NonPagedPool);
 	globals.driver_obj = DriverObject;
@@ -74,7 +73,7 @@ NTSTATUS DriverDeviceControl(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp) {
 	auto stack = IoGetCurrentIrpStackLocation(Irp);
 	auto status = STATUS_SUCCESS;
 	ULONG_PTR information = 0;
-	//auto inputLen = stack->Parameters.DeviceIoControl.InputBufferLength;
+	auto inputLen = stack->Parameters.DeviceIoControl.InputBufferLength;
 	auto outputLen = stack->Parameters.DeviceIoControl.OutputBufferLength;
 
 	switch (static_cast<KernelMonIoctls>(stack->Parameters.DeviceIoControl.IoControlCode)) {
@@ -95,6 +94,27 @@ NTSTATUS DriverDeviceControl(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp) {
 		}
 		information = sizeof(*result);
 		break;
+	}
+	case KernelMonIoctls::AddDriver: {
+		information = 0;
+		PCWSTR driverName = static_cast<PCWSTR>(Irp->AssociatedIrp.SystemBuffer);
+		
+		if (driverName[inputLen / sizeof(WCHAR) - 1] != L'\0') {
+			status = STATUS_INVALID_PARAMETER;
+			break;
+		}
+
+		for (unsigned int i = 0; i < MAX_MONITORED_DRIVERS; i++) {
+			if (globals.monitored_drivers[i]) {
+				continue;
+			}
+
+			globals.monitored_drivers[i] = new(NonPagedPool) WCHAR[inputLen / sizeof(WCHAR)];
+			wcscpy(globals.monitored_drivers[i], driverName);
+
+			status = STATUS_SUCCESS;
+			break;
+		}
 	}
 	default:
 		status = STATUS_INVALID_DEVICE_REQUEST;

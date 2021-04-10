@@ -10,19 +10,11 @@ public:
 
 	~DriverConn();
 
-	template <typename TBuf>
-	bool receive_data(TBuf& buf) {
-		return device_ioctl(KernelMonIoctls::GetData, buf);
-	}
+	bool receive_data(LogEntry& buf);
 
+	bool add_driver(std::wstring& driver_name);
 private:
-	template <typename TBuf>
-	bool device_ioctl(KernelMonIoctls ioctl, TBuf& buf) {
-		DWORD returned;
-		auto ret_code = DeviceIoControl(device_handle_, static_cast<unsigned int>(KernelMonIoctls::GetData), nullptr, 0, &buf, sizeof(buf), &returned, nullptr);
-
-		return ret_code != 0;
-	}
+	bool device_ioctl(KernelMonIoctls ioctl, void* buf, unsigned int size);
 
 	HANDLE device_handle_;
 };

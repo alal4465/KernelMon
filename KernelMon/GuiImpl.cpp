@@ -1,3 +1,8 @@
+/*
+THIS CODE IS MOSTLY ADAPTED FROM THEIMGUI WINDOWS DIRECTX11 EXAMPLE.
+YOU PROBABLY SHOULDN'T TRY TO UNDERSTAND THIS
+*/
+
 #include <string_view>
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
@@ -36,12 +41,8 @@ void driver_get_log(
         log.result,
         utf16ToUtf8(log.path),
         reinterpret_cast<char*>(log.details)
-        });
+    });
 }
-/*
-THIS CODE IS MOSTLY ADAPTED FROM THEIMGUI WINDOWS DIRECTX11 EXAMPLE.
-YOU PROBABLY SHOULDN'T TRY TO UNDERSTAND THIS
-*/
 
 int Gui::main_loop()
 {

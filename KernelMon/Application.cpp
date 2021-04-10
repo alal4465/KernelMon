@@ -1,9 +1,10 @@
 #include "Application.h"
 #include <iostream>
+#include <intrin.h>
 
 Gui::Application::Application() : driver_conn_(DEVICE_SYM_NAME)
 {
-
+    monitored_drivers_.reserve(MAX_MONITORED_DRIVERS);
 }
 
 void Gui::Application::render_tick() {
@@ -14,7 +15,7 @@ void Gui::Application::render_tick() {
 void Gui::Application::show_drivers_window() {
     ImGui::Begin("Driver Settings");
 
-    static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
+    ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
     if (ImGui::BeginTable("Monitored Drivers", 1, flags, ImVec2(0, 0)))
     {
         ImGui::TableSetupColumn("driver names");
@@ -31,7 +32,11 @@ void Gui::Application::show_drivers_window() {
 
     static char buf1[64] = "";
     ImGui::InputText("", buf1, 64);
-    if (ImGui::Button("add driver")) {
+
+    if (ImGui::Button("add driver") && buf1[0] != '\0' && monitored_drivers_.size() < MAX_MONITORED_DRIVERS) {
+        auto driver_name = utf8ToUtf16(buf1);
+        driver_conn_.add_driver(driver_name);
+
         monitored_drivers_.push_back(buf1);
         buf1[0] = '\0';
     }
@@ -42,7 +47,7 @@ void Gui::Application::show_drivers_window() {
 void Gui::Application::show_log_window() {
     ImGui::Begin("Logs");
 
-    static ImGuiTableFlags flags = ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
+    ImGuiTableFlags flags = ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
     if (ImGui::BeginTable("table_scrollx", 5, flags, ImVec2(0, 0)))
     {
         ImGui::TableSetupColumn("Driver");

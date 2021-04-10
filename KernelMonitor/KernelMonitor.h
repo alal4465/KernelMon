@@ -11,7 +11,7 @@ constexpr const WCHAR DEVICE_NAME[] = L"\\Device\\KernelMon";
 constexpr unsigned __int64 MAX_PERRALLEL_BUF_ENTRIES = 10;
 
 struct KernelMonGlobals {
-	PCWCHAR monitored_drivers[MAX_MONITORED_DRIVERS];
+	PWCHAR monitored_drivers[MAX_MONITORED_DRIVERS];
 	kstd::CyclicBuffer<LogEntry, kstd::SpinLock>* driver_log_buffer;
 	Hooking::HookInfoManager* hook_info_manager;
 	Hooking::HookingEngine* hooking_engine;

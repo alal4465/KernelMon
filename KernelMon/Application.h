@@ -9,8 +9,6 @@
 #include "DriverConn.h"
 
 namespace Gui {
-	constexpr inline unsigned int MAX_MONITORED_DRIVERS = 5;
-
 	struct AppLog final {
 		std::string driver;
 		MonitoredFunctions function;
