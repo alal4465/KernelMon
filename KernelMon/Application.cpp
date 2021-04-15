@@ -5,6 +5,7 @@
 Gui::Application::Application() : driver_conn_(DEVICE_SYM_NAME)
 {
     monitored_drivers_.reserve(MAX_MONITORED_DRIVERS);
+    driver_conn_.reset_state();
 }
 
 void Gui::Application::render_tick() {
@@ -38,6 +39,14 @@ void Gui::Application::show_drivers_window() {
         driver_conn_.add_driver(driver_name);
 
         monitored_drivers_.push_back(buf1);
+        buf1[0] = '\0';
+    }
+
+    else if (ImGui::Button("remove driver") && buf1[0] != '\0' && !monitored_drivers_.empty()) {
+        auto driver_name = utf8ToUtf16(buf1);
+        driver_conn_.remove_driver(driver_name);
+
+        monitored_drivers_.erase(std::remove(monitored_drivers_.begin(), monitored_drivers_.end(), buf1), monitored_drivers_.end());
         buf1[0] = '\0';
     }
 

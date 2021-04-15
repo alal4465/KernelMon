@@ -115,10 +115,41 @@ NTSTATUS DriverDeviceControl(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp) {
 			status = STATUS_SUCCESS;
 			break;
 		}
+
+		break;
 	}
+
+	case KernelMonIoctls::RemoveDriver: {
+		information = 0;
+		PCWSTR driverName = static_cast<PCWSTR>(Irp->AssociatedIrp.SystemBuffer);
+
+		if (driverName[inputLen / sizeof(WCHAR) - 1] != L'\0') {
+			status = STATUS_INVALID_PARAMETER;
+			break;
+		}
+
+		for (auto& driver : globals.monitored_drivers) {
+			if (driver != nullptr && wcscmp(driver, driverName) == 0) {
+				delete driver;
+				driver = nullptr;
+			}
+		}
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case KernelMonIoctls::ResetState:
+		information = 0;
+		for (auto& driver : globals.monitored_drivers) {
+			delete driver;
+			driver = nullptr;
+		}
+
+		status = STATUS_SUCCESS;
+		break;
 	default:
 		status = STATUS_INVALID_DEVICE_REQUEST;
-		break;
 	}
 
 	Irp->IoStatus.Status = status;
