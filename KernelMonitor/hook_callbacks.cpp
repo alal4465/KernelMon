@@ -148,3 +148,107 @@ NTSTATUS Hooking::zw_write_file_callback(
 
 	return result;
 }
+
+NTSTATUS Hooking::zw_create_key_callback(
+	PHANDLE            KeyHandle,
+	ACCESS_MASK        DesiredAccess,
+	POBJECT_ATTRIBUTES ObjectAttributes,
+	ULONG              TitleIndex,
+	PUNICODE_STRING    Class,
+	ULONG              CreateOptions,
+	PULONG             Disposition
+) {
+	auto jump_stub = globals.hook_info_manager->lookup_jump_stub(ZwCreateKey);
+	auto result = jump_stub(
+		KeyHandle,
+		DesiredAccess,
+		ObjectAttributes,
+		TitleIndex,
+		Class,
+		CreateOptions,
+		Disposition
+	);
+
+	PUNICODE_STRING driver_name;
+	if (find_driver_by_address(_ReturnAddress(), driver_name) && is_driver_monitored(driver_name)) {
+		LogEntry log;
+
+		wcscpy_s(log.driver, driver_name->Buffer);
+		log.driver[min(driver_name->Length, (sizeof(log.driver) / sizeof(log.driver[0])) - 1)] = L'\0';
+		wcscpy_s(log.path, ObjectAttributes->ObjectName->Buffer);
+		log.path[min(ObjectAttributes->ObjectName->Length, ((sizeof(log.path) / sizeof(log.path[0])) - 1))] = L'\0';
+		log.details[0] = L'\0';
+		log.function = MonitoredFunctions::ZwCreateKey;
+		log.result = result;
+
+		KdPrint(("[+] ZwCreateKey Pushing log to cyclic buffer: %S %S\n", log.driver, log.path));
+		globals.driver_log_buffer->push(log);
+	}
+
+	return result;
+}
+
+NTSTATUS Hooking::zw_set_value_key_callback(
+	HANDLE          KeyHandle,
+	PUNICODE_STRING ValueName,
+	ULONG           TitleIndex,
+	ULONG           Type,
+	PVOID           Data,
+	ULONG           DataSize
+) {
+	auto jump_stub = globals.hook_info_manager->lookup_jump_stub(ZwSetValueKey);
+	auto result = jump_stub(
+		KeyHandle,
+		ValueName,
+		TitleIndex,
+		Type,
+		Data,
+		DataSize
+	);
+
+	PUNICODE_STRING driver_name;
+	if (find_driver_by_address(_ReturnAddress(), driver_name) && is_driver_monitored(driver_name)) {
+		LogEntry log;
+
+		wcscpy_s(log.driver, driver_name->Buffer);
+		log.driver[min(driver_name->Length, (sizeof(log.driver) / sizeof(log.driver[0])) - 1)] = L'\0';
+		wcscpy_s(log.path, ValueName->Buffer);
+		log.path[min(ValueName->Length, ((sizeof(log.path) / sizeof(log.path[0])) - 1))] = L'\0';
+		log.details[0] = L'\0';
+		log.function = MonitoredFunctions::ZwSetValueKey;
+		log.result = result;
+
+		KdPrint(("[+] ZwSetValueKey Pushing log to cyclic buffer: %S %S\n", log.driver, log.path));
+		globals.driver_log_buffer->push(log);
+	}
+
+	return result;
+}
+
+NTSTATUS Hooking::zw_terminate_process_callback(
+	HANDLE   ProcessHandle,
+	NTSTATUS ExitStatus
+) {
+	auto jump_stub = globals.hook_info_manager->lookup_jump_stub(ZwTerminateProcess);
+	auto result = jump_stub(
+		ProcessHandle,
+		ExitStatus
+	);
+
+	PUNICODE_STRING driver_name;
+	if (find_driver_by_address(_ReturnAddress(), driver_name) && is_driver_monitored(driver_name)) {
+		LogEntry log;
+
+		wcscpy_s(log.driver, driver_name->Buffer);
+		log.driver[min(driver_name->Length, (sizeof(log.driver) / sizeof(log.driver[0])) - 1)] = L'\0';
+		log.details[0] = L'\0';
+		log.path[0] = L'\0';
+		log.function = MonitoredFunctions::ZwTerminateProcess;
+		log.result = result;
+
+		KdPrint(("[+] ZwTerminateProcess Pushing log to cyclic buffer\n"));
+		globals.driver_log_buffer->push(log);
+	}
+
+	return result;
+}

@@ -16,7 +16,9 @@ enum class MonitoredFunctions {
 	None,
 	ZwCreateFile,
 	ZwWriteFile,
-	ZwCreateKey
+	ZwCreateKey,
+	ZwSetValueKey,
+	ZwTerminateProcess,
 };
 
 struct LogEntry {

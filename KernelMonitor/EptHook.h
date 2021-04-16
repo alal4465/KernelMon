@@ -1,10 +1,9 @@
 #pragma once
-#include <ntddk.h>
 #include "ept.h"
 #include "context.h"
-#include "ldisasm.h"
 #include "asm_stubs.h"
 #include "HookInfoManager.h"
+#include <ntddk.h>
 
 namespace Hooking {
 	class EptHook final {

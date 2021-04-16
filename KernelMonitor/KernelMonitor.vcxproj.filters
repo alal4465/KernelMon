@@ -98,9 +98,6 @@
     <ClInclude Include="EptHook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ldisasm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="HookingEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -126,6 +123,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nmd_assembly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

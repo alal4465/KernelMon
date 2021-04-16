@@ -186,11 +186,11 @@
     <ClInclude Include="HookInfoManager.h" />
     <ClInclude Include="hook_callbacks.h" />
     <ClInclude Include="KernelMonitor.h" />
-    <ClInclude Include="ldisasm.h" />
     <ClInclude Include="LockGuard.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="msr.h" />
     <ClInclude Include="mtrr.h" />
+    <ClInclude Include="nmd_assembly.h" />
     <ClInclude Include="Pair.h" />
     <ClInclude Include="SpinLock.h" />
     <ClInclude Include="vmcs_fields.h" />

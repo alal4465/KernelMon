@@ -1,6 +1,9 @@
 #include "EptHook.h"
 #include "vmx.h"
 #include "KernelMonitor.h"
+#define NMD_ASSEMBLY_IMPLEMENTATION
+#define NMD_ASSEMBLY_DEFINE_INT_TYPES
+#include "nmd_assembly.h"
 
 namespace Hooking {
 	/*
@@ -96,7 +99,7 @@ void Hooking::EptHook::add_function_hook(void* hooked_function_virtual, void* ho
 
 	size_t overwritten_length{ 0 };
 	while (overwritten_length < sizeof(HOOK_PATCH_TEMPLATE))
-		overwritten_length += ldisasm::get_instruction_length(exec_page_function + overwritten_length);
+		overwritten_length += nmd_x86_ldisasm(exec_page_function + overwritten_length, PAGE_SIZE, NMD_X86_MODE_64);
 
 	unsigned char* jump_stub = new(NonPagedPool) unsigned char[overwritten_length + sizeof(HOOK_PATCH_TEMPLATE)];
 	RtlCopyMemory(jump_stub, exec_page_function, overwritten_length);

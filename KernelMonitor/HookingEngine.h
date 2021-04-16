@@ -12,6 +12,7 @@ namespace Hooking {
 			function_hooks_(new (NonPagedPool) EptHook*[hooked_function_count_]),
 			expected_mtf_function_index_(-1)
 		{
+			memset(function_hooks_, 0, sizeof(EptHook*) * hooked_function_count_);
 			for (unsigned __int32 i = 0; i < hooked_function_count_; i++) {
 				if (add_function_to_already_hooked_page(hooked_functions[i].first, hooked_functions[i].second, i))
 					continue;

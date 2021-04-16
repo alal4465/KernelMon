@@ -16,5 +16,7 @@ std::string utf16ToUtf8(const std::wstring& utf16Str)
 const std::unordered_map<MonitoredFunctions, std::string_view> monitored_functions_map = {
    {MonitoredFunctions::ZwCreateFile, "ZwCreateFile"},
    {MonitoredFunctions::ZwWriteFile, "ZwWriteFile"},
-   {MonitoredFunctions::ZwCreateKey, "ZwCreateKey"}
+   {MonitoredFunctions::ZwCreateKey, "ZwCreateKey"},
+   {MonitoredFunctions::ZwSetValueKey, "ZwSetValueKey"},
+   {MonitoredFunctions::ZwTerminateProcess, "ZwTerminateProcess"}
 };
