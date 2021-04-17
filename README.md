@@ -1,3 +1,8 @@
 # KernelMon
-A ProcMon-esque tool for monitoring Windows Kernel Drivers.
-![שgם](https://user-images.githubusercontent.com/60041914/113773212-67299400-972e-11eb-9ebd-f34bc797d37f.png)
+KernelMon is a virtualization-based driver monitoring infrastructure that draws inspiration from the Sysinternals suite and in particular, ProcMon.  
+
+It basically hooks prominent KernelMode API's (for now ZW's) and transfers this inforamtion in the form of logs to a usermode UI.
+KernelMon traces registry and fs reads, writes, process and thread operations.  
+  
+## Example:
+![kernelmonitor](https://user-images.githubusercontent.com/60041914/115114151-6696c600-9f96-11eb-85cb-7650dc3664de.gif)
