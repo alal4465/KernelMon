@@ -113,7 +113,7 @@ void vmx::cleanup_vmm_context(vmx::VmmContext* vmm_context) {
 			if (vmm_context->vcpu_table[i].stack)
 				MmFreeNonCachedMemory(vmm_context->vcpu_table[i].stack, VMM_STACK_SIZE);
 		
-			ept::cleanup_ept(&vmm_context->vcpu_table[i]);
+			//ept::cleanup_ept(&vmm_context->vcpu_table[i]);
 		}
 	}
 
