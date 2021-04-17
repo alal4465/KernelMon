@@ -1,7 +1,7 @@
 # KernelMon
 KernelMon is a virtualization-based driver monitoring infrastructure that draws inspiration from the Sysinternals suite and in particular, ProcMon.  
 
-It basically hooks prominent KernelMode API's (for now Zw's) and transfers this inforamtion in the form of logs to a usermode UI.
+It basically hooks prominent KernelMode API's (for now Zw's) and transfers this information in the form of logs to a usermode UI.
 KernelMon traces registry and fs reads and writes, process and thread operations.  
   
 ## Example
