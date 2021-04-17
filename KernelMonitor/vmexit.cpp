@@ -13,7 +13,7 @@ namespace vmx {
 	}
 }
 
-extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
+extern "C" bool vmexit_handler(vmx::VmexitGuestContext * context) {
 	size_t exit_reason{ 0 };
 	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_EXIT_REASON), &exit_reason);
 
@@ -21,8 +21,11 @@ extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
 	__vmx_vmread(static_cast<size_t>(vmx::VmcsField::VMCS_EXIT_QUALIFICATION), &exit_qualification);
 
 	exit_reason &= 0xffff;
-	size_t faulting_addr{ 0 }; // TODO: remove
+	size_t faulting_addr{ 0 };
+	
 	bool increment_rip{true};
+	bool execute_vmxoff{false};
+
 	switch (static_cast<vmx::VmExitReason>(exit_reason)) {
 	case vmx::VmExitReason::EXIT_REASON_CPUID:
 		vmx::vmexit::cpuid_handler(context, increment_rip);
@@ -58,15 +61,22 @@ extern "C" void vmexit_handler(vmx::VmexitGuestContext * context) {
 		vmx::vmexit::write_msr_handler(increment_rip, context);
 		break;
 
+	case vmx::VmExitReason::EXIT_REASON_VMXOFF:
+		increment_rip = true;
+		execute_vmxoff = true;
+		break;
+
 	default:
 		KdPrint(("[-] VMEXIT unknown reason: %u\n", exit_reason));
 		__debugbreak();
 		break;
 	}
-
+	
 	if (increment_rip) {
 		vmx::vmexit::increment_rip();
 	}
+
+	return execute_vmxoff;
 }
 
 static void vmx::vmexit::cpuid_handler(vmx::VmexitGuestContext* context, bool& increment_rip) {

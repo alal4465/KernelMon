@@ -34,8 +34,10 @@ void vmx::terminate_vmx() {
 
 	KeIpiGenericCall(reinterpret_cast<PKIPI_BROADCAST_WORKER>(terminate_cpu), 0);
 
+	delete globals.driver_log_buffer;
+	delete globals.hooking_engine;
+	delete globals.hook_info_manager;
 	cleanup_vmm_context(globals.vmm_context);
-	globals.vmm_context = nullptr;
 }
 
 extern "C" void processor_initialize_vmx(vmx::VCpu * vcpu_table, PVOID guest_rsp) {

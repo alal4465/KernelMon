@@ -2,6 +2,10 @@
 
 extern vmexit_handler : proc
 extern processor_initialize_vmx : proc
+extern prepare_vmxoff_globals : proc
+extern g_guest_rip : QWORD
+extern g_guest_rsp : QWORD
+
 
 SAVE_GP macro
         push     r15
@@ -157,6 +161,9 @@ vmexit_stub PROC
         call    vmexit_handler
         add     rsp, 28h
 
+        test al, al
+	    jnz vmxoff_handler
+
         RESTORE_GP
 
         sub rsp, 0100h
@@ -174,6 +181,18 @@ vmm_setup_stub PROC
     ret
 vmm_setup_stub ENDP
 
+vmxoff_handler PROC
+    sub rsp, 20h
+    call prepare_vmxoff_globals
+    add rsp, 20h
+
+    RESTORE_GP
+    
+    vmxoff
+
+    mov rsp, g_guest_rsp
+    jmp g_guest_rip
+vmxoff_handler ENDP
 
 vmm_entrypoint PROC
     ; TODO: verify rsp 16-byte alinged ?

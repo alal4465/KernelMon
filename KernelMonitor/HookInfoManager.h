@@ -27,6 +27,7 @@ namespace Hooking {
 
 		void set_jump_stub(void* function_addr, void* jmp_stub);
 
+		~HookInfoManager() { delete function_jmp_stub_map_; }
 	private:
 		unsigned __int64 hooked_function_count_;
 		kstd::Pair<void*, void*>* function_jmp_stub_map_;

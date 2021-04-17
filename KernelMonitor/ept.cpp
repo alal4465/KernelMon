@@ -44,6 +44,15 @@ void vmx::ept::cleanup_ept(VCpu* vcpu) {
 	delete[] vcpu->pml4t;
 	delete[] vcpu->pdpt;
 	for (int i = 0; i < EPT_TABLE_ENTRIES; i++) {
+		// for (int j = 0; j < EPT_TABLE_ENTRIES; j++) {
+		// 	if (!vcpu->large_pdt[i][j].fields.large) {
+		// 		PHYSICAL_ADDRESS addr;
+		// 		addr.QuadPart = vcpu->large_pdt[i][j].fields.pfn * PAGE_SIZE;
+		// 		
+		// 		MmFreeContiguousMemory(MmGetVirtualForPhysical(addr));
+		// 	}
+		// }
+
 		delete[] vcpu->large_pdt[i];
 	}
 	delete[] vcpu->large_pdt;

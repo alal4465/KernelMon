@@ -2,7 +2,9 @@
 #include "KernelMonitor.h"
 #include "vmcs_fields.h"
 Hooking::HookingEngine::~HookingEngine() {
-	// for ? in ? delete function_hooks[i]
+	for (unsigned __int32 i = 0; i < hooked_function_count_; i++) {
+		delete function_hooks_[i];
+	}
 	delete[] function_hooks_;
 }
 

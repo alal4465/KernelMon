@@ -172,6 +172,7 @@
     <ClCompile Include="vmcs_fields.cpp" />
     <ClCompile Include="vmexit.cpp" />
     <ClCompile Include="vmx.cpp" />
+    <ClCompile Include="vmxoff_stubs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asm_stubs.h" />
