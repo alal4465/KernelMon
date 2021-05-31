@@ -1,11 +1,41 @@
 #include "Application.h"
 #include <iostream>
 #include <intrin.h>
+#include <chrono>
+#include <thread>
 
 Gui::Application::Application() : driver_conn_(DEVICE_SYM_NAME)
 {
     monitored_drivers_.reserve(MAX_MONITORED_DRIVERS);
     driver_conn_.reset_state();
+}
+
+int Gui::Application::console_loop(int argc, char** argv) {
+    std::cout << "[+] Adding monitored drivers...\n";
+    
+    for (int i = 2; i < argc; i++) {
+        auto driver_name = utf8ToUtf16(argv[i]);
+        driver_conn_.add_driver(driver_name);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    std::cout << "[+] Printing logs with format: <driver-name> | <function-name> | <function-result> | <path> | <additional-details>\n";
+
+    while (true) {
+        LogEntry log;
+        if (!driver_conn_.receive_data(log) || log.function == MonitoredFunctions::None) {
+            continue;
+        }
+
+        std::wcout << L"[+] " << log.driver << L" | ";
+        std::cout << monitored_functions_map.at(log.function).data() << " | " << log.result << " | ";
+        std::wcout << log.path << L" | ";
+        std::cout << reinterpret_cast<char*>(log.details) << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    return 0;
 }
 
 void Gui::Application::render_tick() {

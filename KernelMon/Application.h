@@ -29,6 +29,8 @@ namespace Gui {
 
 		void add_log(AppLog&& log);
 
+		int console_loop(int argc, char** argv);
+
 		DriverConn& driver() { return driver_conn_; }
 	private:
 		std::vector<AppLog> logs_;
